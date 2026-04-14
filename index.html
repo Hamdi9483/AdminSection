@@ -4,57 +4,29 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تسجيل الدخول | نظام العيادة</title>
-  <!-- مكتبة الأيقونات -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- مكتبة Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <style>
     :root { --primary: #4f46e5; --bg: #f8fafc; --card: #fff; --txt: #0f172a; --brd: #e2e8f0; }
     [data-theme="dark"] { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --txt: #f1f5f9; --brd: #334155; }
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,sans-serif; transition:all 0.3s; }
     body { background:var(--bg); color:var(--txt); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-    
-    .login-box {
-      background:var(--card); padding:32px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.1);
-      width:100%; max-width:400px; border:1px solid var(--brd); position:relative;
-    }
-    
+    .login-box { background:var(--card); padding:32px; border-radius:20px; box-shadow:0 10px 40px rgba(0,0,0,0.1); width:100%; max-width:400px; border:1px solid var(--brd); }
     .header { text-align:center; margin-bottom:24px; }
     .header h2 { font-size:1.5rem; font-weight:700; background:linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
     .header p { color:var(--txt); opacity:0.7; font-size:0.9rem; margin-top:4px; }
-    
     .ctrl-btns { display:flex; justify-content:flex-end; gap:8px; margin-bottom:16px; }
-    .ctrl-btn {
-      width:36px; height:36px; border-radius:10px; border:none; background:var(--bg); color:var(--txt);
-      cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
-      box-shadow:0 2px 6px rgba(0,0,0,0.05);
-    }
+    .ctrl-btn { width:36px; height:36px; border-radius:10px; border:none; background:var(--bg); color:var(--txt); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.05); }
     .ctrl-btn:hover { background:var(--primary); color:#fff; transform:translateY(-2px); }
-    
     .form-group { margin-bottom:18px; }
     label { display:block; margin-bottom:6px; font-weight:600; font-size:0.95rem; }
-    input {
-      width:100%; padding:12px; border:2px solid var(--brd); border-radius:12px; font-size:1rem;
-      background:var(--bg); color:var(--txt); outline:none;
-    }
+    input { width:100%; padding:12px; border:2px solid var(--brd); border-radius:12px; font-size:1rem; background:var(--bg); color:var(--txt); outline:none; }
     input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(79,70,229,0.15); }
-    
-    .btn {
-      width:100%; padding:14px; border:none; border-radius:12px; background:var(--primary);
-      color:#fff; font-size:1rem; font-weight:600; cursor:pointer; transition:0.2s;
-      display:flex; align-items:center; justify-content:center; gap:8px;
-    }
+    .btn { width:100%; padding:14px; border:none; border-radius:12px; background:var(--primary); color:#fff; font-size:1rem; font-weight:600; cursor:pointer; transition:0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
     .btn:hover { opacity:0.9; transform:translateY(-1px); }
     .btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
-    
-    .error-msg {
-      color:var(--error); background:rgba(239,68,68,0.1); padding:10px; border-radius:8px;
-      text-align:center; margin-top:12px; display:none; font-size:0.9rem;
-    }
+    .error-msg { color:#ef4444; background:rgba(239,68,68,0.1); padding:10px; border-radius:8px; text-align:center; margin-top:12px; display:none; font-size:0.9rem; }
     .error-msg.show { display:block; animation:shake 0.3s; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
-    
     .footer { text-align:center; margin-top:20px; font-size:0.85rem; opacity:0.7; }
     .links { text-align:center; margin-top:12px; font-size:0.9rem; }
     .links a { color:var(--primary); text-decoration:none; font-weight:500; }
@@ -64,16 +36,13 @@
 <body>
   <div class="login-box">
     <div class="ctrl-btns">
-      <!-- أزرار التحكم (تعمل دائماً) -->
-      <button class="ctrl-btn" id="langBtn" onclick="toggleLang()" title="Language">EN</button>
-      <button class="ctrl-btn" id="themeBtn" onclick="toggleTheme()" title="Theme">🌙</button>
+      <button class="ctrl-btn" id="langBtn" title="Language">EN</button>
+      <button class="ctrl-btn" id="themeBtn" title="Theme">🌙</button>
     </div>
-    
     <div class="header">
       <h2 id="loginTitle">تسجيل الدخول</h2>
       <p id="loginSubtitle">مرحباً بك في نظام العيادة</p>
     </div>
-    
     <form id="loginForm">
       <div class="form-group">
         <label id="emailLabel">البريد الإلكتروني</label>
@@ -87,38 +56,24 @@
         <i class="fas fa-sign-in-alt"></i> <span id="btnText">دخول</span>
       </button>
     </form>
-    
     <div id="errorMsg" class="error-msg"></div>
-    <div class="links">
-      <a href="#">نسيت كلمة المرور؟</a> • <a href="#">إنشاء حساب</a>
-    </div>
+    <div class="links"><a href="#">نسيت كلمة المرور؟</a> • <a href="#">إنشاء حساب</a></div>
     <div class="footer" id="footerText">✨ نظام العيادة © 2026</div>
   </div>
 
+  <!-- ✅ تحميل مكتبة Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <script>
     // ========================================
-    // 1️⃣ واجهة المستخدم (تعمل بدون إنترنت)
+    // 1️⃣ واجهة المستخدم (تعمل دائماً)
     // ========================================
     let lang = localStorage.getItem('clinic_lang') || 'ar';
     let theme = localStorage.getItem('clinic_theme') || 'light';
 
     const T = {
-      ar: { 
-        title: "تسجيل الدخول", subtitle: "مرحباً بك في نظام العيادة", 
-        emailLbl: "البريد الإلكتروني", emailPh: "أدخل بريدك", 
-        passLbl: "كلمة المرور", passPh: "أدخل كلمة المرور", btn: "دخول", 
-        footer: "✨ نظام العيادة © 2026", flag: "EN", themeT: "الوضع الليلي", langT: "English",
-        errAuth: "❌ بيانات خاطئة", errConn: "❌ فشل الاتصال", ld: "جاري...",
-        pages: { super: 'super-admin.html', admin: 'Dashboard.html', scanner: 'Scan.html', home: 'home.html' }
-      },
-      en: { 
-        title: "Login", subtitle: "Welcome to Clinic System", 
-        emailLbl: "Email", emailPh: "Enter email", 
-        passLbl: "Password", passPh: "Enter password", btn: "Sign In", 
-        footer: "✨ Clinic © 2026", flag: "🇸🇦", themeT: "Dark Mode", langT: "العربية",
-        errAuth: "❌ Invalid credentials", errConn: "❌ Connection failed", ld: "Loading...",
-        pages: { super: 'super-admin.html', admin: 'Dashboard.html', scanner: 'Scan.html', home: 'home.html' }
-      }
+      ar: { title:"تسجيل الدخول", subtitle:"مرحباً بك في نظام العيادة", emailLbl:"البريد الإلكتروني", emailPh:"أدخل بريدك", passLbl:"كلمة المرور", passPh:"أدخل كلمة المرور", btn:"دخول", footer:"✨ نظام العيادة © 2026", flag:"EN", themeT:"الوضع الليلي", langT:"English", errAuth:"❌ بيانات خاطئة", errConn:"❌ فشل الاتصال", ld:"جاري...", pages:{super:'super-admin.html', admin:'Dashboard.html', scanner:'Scan.html', home:'home.html'} },
+      en: { title:"Login", subtitle:"Welcome to Clinic System", emailLbl:"Email", emailPh:"Enter email", passLbl:"Password", passPh:"Enter password", btn:"Sign In", footer:"✨ Clinic © 2026", flag:"🇸🇦", themeT:"Dark Mode", langT:"العربية", errAuth:"❌ Invalid credentials", errConn:"❌ Connection failed", ld:"Loading...", pages:{super:'super-admin.html', admin:'Dashboard.html', scanner:'Scan.html', home:'home.html'} }
     };
 
     function applyTheme(t) {
@@ -133,7 +88,6 @@
       const t = T[l];
       document.documentElement.lang = l;
       document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
-      
       document.getElementById('loginTitle').textContent = t.title;
       document.getElementById('loginSubtitle').textContent = t.subtitle;
       document.getElementById('emailLabel').textContent = t.emailLbl;
@@ -142,7 +96,6 @@
       document.getElementById('password').placeholder = t.passPh;
       document.getElementById('btnText').textContent = t.btn;
       document.getElementById('footerText').textContent = t.footer;
-      
       document.getElementById('langBtn').textContent = t.flag;
       document.getElementById('langBtn').title = t.langT;
       document.getElementById('themeBtn').title = t.themeT;
@@ -151,68 +104,69 @@
     function toggleLang() { applyLang(lang = lang === 'ar' ? 'en' : 'ar'); }
 
     // ========================================
-    // 2️⃣ منطق تسجيل الدخول (سوبابيز)
+    // 2️⃣ منطق تسجيل الدخول + اتصال Supabase
     // ========================================
     const SUPABASE_URL = 'https://ncqvzpcqotdiwjqbwlwp.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_98lfpU1zaqG-MNxkhlvg6g_KEMPMPbS';
     let sb = null;
 
-    // التحقق من تحميل المكتبة
-    if (typeof supabase !== 'undefined') {
-      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      console.log("✅ Supabase Connected");
-    } else {
-      console.warn("⚠️ Supabase Library Not Loaded - Check Internet");
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      // تهيئة الواجهة
+      applyTheme(theme);
+      applyLang(lang);
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      if (!sb) {
-        alert("⚠️ المكتبة غير محملة. تأكد من اتصال الإنترنت أو جرب تشغيل الملف عبر سيرفر محلي (Live Server).");
-        return;
+      // ربط الأزرار يدوياً (أكثر استقراراً على GitHub Pages)
+      document.getElementById('langBtn').addEventListener('click', toggleLang);
+      document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+
+      // التحقق من تحميل Supabase
+      if (typeof supabase !== 'undefined') {
+        sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase Client Initialized');
+      } else {
+        console.warn('⚠️ Supabase CDN Failed to Load. Check Internet or AdBlocker.');
       }
 
-      const btn = document.getElementById('loginBtn');
-      const txt = document.getElementById('btnText');
-      const err = document.getElementById('errorMsg');
-      const t = T[lang];
-      
-      err.classList.remove('show');
-      btn.disabled = true;
-      txt.textContent = t.ld;
+      // معالجة النموذج
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!sb) {
+          alert('⚠️ مكتبة الاتصال غير محملة. تأكد من الإنترنت أو عطل مانع الإعلانات.');
+          return;
+        }
 
-      try {
-        const { data, error } = await sb.auth.signInWithPassword({
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value
-        });
+        const btn = document.getElementById('loginBtn');
+        const txt = document.getElementById('btnText');
+        const err = document.getElementById('errorMsg');
+        const t = T[lang];
 
-        if (error) throw error;
+        err.classList.remove('show');
+        btn.disabled = true;
+        txt.textContent = t.ld;
 
-        // جلب الصلاحية
-        const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
-        const role = profile?.role || 'scanner';
+        try {
+          const { data, error } = await sb.auth.signInWithPassword({
+            email: document.getElementById('email').value.trim(),
+            password: document.getElementById('password').value
+          });
+          if (error) throw error;
 
-        // التوجيه
-        const pages = t.pages;
-        if (role === 'super_admin') location.href = pages.super;
-        else if (role === 'admin') location.href = pages.admin;
-        else if (role === 'scanner') location.href = pages.scanner;
-        else location.href = pages.home;
-
-      } catch (x) {
-        console.error(x);
-        err.textContent = x.message?.includes('Invalid') ? t.errAuth : t.errConn;
-        err.classList.add('show');
-        btn.disabled = false;
-        txt.textContent = t.btn;
-      }
+          const { data: profile } = await sb.from('profiles').select('role').eq('id', data.user.id).single();
+          const role = profile?.role || 'scanner';
+          const pages = t.pages;
+          
+          window.location.href = role === 'super_admin' ? pages.super :
+                                 role === 'admin' ? pages.admin :
+                                 role === 'scanner' ? pages.scanner : pages.home;
+        } catch (x) {
+          console.error('Login Error:', x);
+          err.textContent = x.message?.includes('Invalid') ? t.errAuth : t.errConn;
+          err.classList.add('show');
+          btn.disabled = false;
+          txt.textContent = t.btn;
+        }
+      });
     });
-
-    // التهيئة الأولية
-    applyTheme(theme);
-    applyLang(lang);
   </script>
 </body>
 </html>
