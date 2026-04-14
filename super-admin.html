@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول | نظام العيادة</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root { --p:#4f46e5; --bg:#f8fafc; --card:#fff; --txt:#0f172a; --brd:#e2e8f0; }
+    [data-theme="dark"] { --bg:#0f172a; --card:#1e293b; --txt:#f1f5f9; --brd:#334155; }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif;transition:all 0.3s}
+    body{background:var(--bg);color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .box{background:var(--card);padding:30px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,0.1);width:100%;max-width:400px;border:1px solid var(--brd)}
+    h2{text-align:center;margin-bottom:20px;color:var(--p)}
+    input{width:100%;padding:12px;margin:8px 0;border:2px solid var(--brd);border-radius:10px;background:var(--bg);color:var(--txt);outline:none}
+    input:focus{border-color:var(--p)}
+    button{width:100%;padding:12px;margin-top:12px;border:none;border-radius:10px;background:var(--p);color:#fff;font-weight:600;cursor:pointer}
+    button:hover{opacity:0.9}
+    .err{color:#ef4444;font-size:0.85rem;text-align:center;margin-top:8px;display:none}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🔐 تسجيل الدخول</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+      <input type="password" id="password" placeholder="كلمة المرور" required>
+      <button type="submit">دخول</button>
+    </form>
+    <div id="err" class="err"></div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('err');
+      errEl.style.display = 'none';
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      });
+
+      if (error) {
+        errEl.textContent = '❌ ' + error.message;
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
+      redirectToByRole(profile.role);
+    });
+  </script>
+</body>
+</html>

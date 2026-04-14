@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم العيادة | MIS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 🌙 متغيرات الألوان - الوضع النهاري */
+        :root { 
+            --p:#2563eb; --s:#10b981; --bg:#f8fafc; --card:#fff; 
+            --txt:#0f172a; --brd:#e2e8f0; --err:#ef4444; 
+        }
+        /* 🌑 متغيرات الألوان - الوضع الليلي */
+        [data-theme="dark"] { 
+            --p:#60a5fa; --s:#34d399; --bg:#0f172a; --card:#1e293b; 
+            --txt:#f1f5f9; --brd:#334155; --err:#f87171; 
+        }
+        
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,sans-serif; transition:background-color 0.3s, color 0.3s, border-color 0.3s}
+        body{background:var(--bg);color:var(--txt);padding:20px;min-height:100vh}
+        .container{max-width:1100px;margin:0 auto}
+        .diag-bar{background:var(--card);padding:10px 16px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 6px rgba(0,0,0,0.05);font-size:0.9rem}
+        .status-dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1;margin-left:8px}
+        .status-dot.ok{background:var(--s)}
+        .status-dot.err{background:var(--err);animation:pulse 1.5s infinite}
+        @keyframes pulse{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}
+        
+        /* ✅ أزرار التحكم */
+        .ctrl-btns { display:flex; gap:8px; align-items:center; }
+        .ctrl-btn { 
+            width:40px; height:40px; border-radius:10px; border:none; 
+            background:var(--card); color:var(--txt); 
+            display:flex; align-items:center; justify-content:center; 
+            cursor:pointer; font-size:1.2rem; 
+            box-shadow:0 2px 6px rgba(0,0,0,0.1);
+            transition:all 0.3s;
+        }
+        .ctrl-btn:hover { background:var(--p); color:#fff; transform:translateY(-2px); }
+        
+        .tabs{display:flex;gap:8px;margin-bottom:20px;background:var(--card);padding:8px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+        .tab{padding:10px 18px;border:none;background:transparent;cursor:pointer;border-radius:8px;font-weight:600;color:#64748b;transition:0.2s}
+        .tab.active{background:var(--p);color:#fff}
+        .tab:hover:not(.active){background:#f1f5f9}
+        .panel{display:none;background:var(--card);padding:24px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+        .panel.active{display:block}
+        h2{margin-bottom:16px;color:var(--p);font-size:1.3rem}
+        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px}
+        .form-group{display:flex;flex-direction:column;gap:6px}
+        label{font-size:0.9rem;font-weight:500;color:#475569}
+        input,select,textarea{padding:10px;border:1.5px solid var(--brd);border-radius:8px;font-size:0.95rem;outline:none;transition:0.2s;background:var(--card);color:var(--txt)}
+        input:focus,select:focus{border-color:var(--p);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
+        .btn{padding:10px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:600;transition:0.2s;display:inline-flex;align-items:center;gap:6px}
+        .btn-primary{background:var(--p);color:#fff}.btn-primary:hover{background:#1d4ed8}
+        .btn-success{background:var(--s);color:#fff}.btn-success:hover{background:#059669}
+        .btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
+        .btn-sec{background:#f1f5f9;color:var(--txt)}.btn-sec:hover{background:#e2e8f0}
+        .filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;padding:16px;background:var(--card);border-radius:10px;border:1px solid var(--brd)}
+        .filters input, .filters button{padding:8px 12px;font-size:0.9rem}
+        .table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--brd)}
+        table{width:100%;border-collapse:collapse;min-width:750px}
+        th,td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--brd);font-size:0.9rem}
+        th{background:var(--card);font-weight:600;color:#475569}
+        tr:hover{background:var(--bg)}
+        tr.selected{background:#eff6ff}
+        .actions{display:flex;gap:6px}
+        .badge{padding:4px 8px;border-radius:6px;font-size:0.8rem;font-weight:500}
+        .badge-p{background:#dbeafe;color:#1e40af}.badge-s{background:#dcfce7;color:#166534}
+        .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center;z-index:999;backdrop-filter:blur(2px)}
+        .modal.show{display:flex}
+        .modal-box{background:var(--card);padding:24px;border-radius:16px;max-width:500px;width:90%;box-shadow:0 15px 30px rgba(0,0,0,0.15)}
+        .modal-box h3{color:var(--p);margin-bottom:12px;text-align:center}
+        .batch-list{max-height:220px;overflow-y:auto;margin:15px 0;background:var(--card);border-radius:10px;padding:10px}
+        .batch-item{padding:8px;border-bottom:1px solid var(--brd);font-size:0.9rem;display:flex;justify-content:space-between;align-items:center}
+        .batch-item.active{background:#dbeafe;font-weight:600;border-radius:6px}
+        .batch-item.done{opacity:0.5;text-decoration:line-through}
+        .progress-bar{height:6px;background:#e2e8f0;border-radius:3px;margin:12px 0;overflow:hidden}
+        .progress-fill{height:100%;background:var(--s);transition:width 0.3s}
+        .local-badge{background:#fbbf24;color:#78350f;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;margin-right:8px}
+        input[type=checkbox]{width:18px;height:18px;cursor:pointer;accent-color:var(--p)}
+        @media(max-width:600px){.tabs{flex-direction:column}.form-grid{grid-template-columns:1fr}.diag-bar{flex-direction:column;gap:8px;text-align:center}.filters{flex-direction:column}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="diag-bar">
+            <div>
+                <span id="conn-dot" class="status-dot"></span>
+                <span id="conn-text">جاري فحص الاتصال...</span>
+                <span id="local-badge" class="local-badge" style="display:none">🧪 وضع التجربة المحلي</span>
+            </div>
+            <div class="ctrl-btns">
+                <!-- ✅ زر تبديل اللغة -->
+                <button class="ctrl-btn" id="langBtn" title="English" onclick="toggleLang()">🇸🇾</button>
+                <!-- ✅ زر تبديل السمة -->
+                <button class="ctrl-btn" id="themeBtn" title="الوضع الليلي" onclick="toggleTheme()">🌙</button>
+                <button class="btn btn-sec" style="font-size:0.85rem;padding:6px 12px" onclick="toggleLocalMode()">🔄 تبديل وضع التخزين</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dash')" id="tDash">📊 لوحة المواعيد</button>
+            <button class="tab" onclick="switchTab('add')" id="tAdd">➕ إضافة موعد</button>
+            <button class="tab" onclick="switchTab('set')" id="tSet">⚙️ إعدادات العيادة</button>
+        </div>
+        <div id="dash" class="panel active">
+            <h2 id="hDash">📋 قائمة المواعيد المسجلة</h2>
+            <div class="filters">
+                <input type="date" id="filter-date">
+                <input type="date" id="filter-reg">
+                <button class="btn btn-sec" onclick="applyFilters()" id="bFilter">🔍 تصفية</button>
+                <button class="btn btn-sec" onclick="resetFilters()" id="bReset">🔄 إلغاء</button>
+                <div style="flex:1"></div>
+                <button class="btn btn-success" onclick="startBatchWA()" id="bBatch">📤 إرسال واتساب</button>
+                <button class="btn btn-success" onclick="exportCSV()" id="bExport">📥 تصدير</button>
+                <button class="btn btn-danger" onclick="cleanupOld()" id="bClean">🗑️ حذف</button>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:40px;text-align:center"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+                            <th>#</th><th id="thName">المريض</th><th id="thPhone">الهاتف</th><th id="thDate">الموعد</th><th id="thTime">الوقت</th><th id="thReg">تسجيل</th><th id="thAct">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+        <div id="add" class="panel">
+            <h2 id="hAdd">📅 تسجيل موعد جديد</h2>
+            <form id="appt-form" onsubmit="handleAdd(event)">
+                <div class="form-grid">
+                    <div class="form-group"><label id="lName">اسم المريض</label><input type="text" id="a-name" required></div>
+                    <div class="form-group"><label id="lPhone">رقم الهاتف</label><input type="tel" id="a-phone" placeholder="966501234567" required></div>
+                    <div class="form-group"><label id="lDate">تاريخ الموعد</label><input type="date" id="a-date" required onchange="checkDateConstraints()"></div>
+                    <div class="form-group"><label id="lTime">وقت الموعد</label><input type="time" id="a-time" step="900" required></div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="btn-save">💾 حفظ الموعد</button>
+            </form>
+        </div>
+        <div id="set" class="panel">
+            <h2 id="hSet">⚙️ إعدادات دوام العيادة</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label id="lDays">الأيام المسموحة</label>
+                    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
+                        <label><input type="checkbox" value="0" checked> <span id="d0">أحد</span></label>
+                        <label><input type="checkbox" value="1" checked> <span id="d1">إثنين</span></label>
+                        <label><input type="checkbox" value="2" checked> <span id="d2">ثلاثاء</span></label>
+                        <label><input type="checkbox" value="3" checked> <span id="d3">أربعاء</span></label>
+                        <label><input type="checkbox" value="4" checked> <span id="d4">خميس</span></label>
+                        <label><input type="checkbox" value="5"> <span id="d5">جمعة</span></label>
+                        <label><input type="checkbox" value="6"> <span id="d6">سبت</span></label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lBlock">التواريخ المحظورة</label>
+                    <textarea id="s-blocked" rows="3" placeholder="2026-04-10"></textarea>
+                </div>
+                <div class="form-group"><label id="lStart">بداية الدوام</label><input type="time" id="s-start" value="09:00"></div>
+                <div class="form-group"><label id="lEnd">نهاية الدوام</label><input type="time" id="s-end" value="17:00"></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveSettings()" id="bSettings">💾 حفظ الإعدادات</button>
+        </div>
+    </div>
+
+    <div id="alert-modal" class="modal">
+        <div class="modal-box">
+            <h3 id="alertTitle">⚠️ تنبيه: فجوة زمنية</h3>
+            <p id="alert-msg"></p>
+            <div style="display:flex;gap:10px;justify-content:center">
+                <button class="btn btn-primary" onclick="closeAlert(true)" id="bContinue">متابعة</button>
+                <button class="btn btn-sec" onclick="closeAlert(false)" id="bCancel">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="batch-modal" class="modal">
+        <div class="modal-box">
+            <h3 id="batchTitle">📤 إرسال واتساب</h3>
+            <p id="batchHint" style="text-align:center;color:#64748b;font-size:0.9rem;margin-bottom:10px">اضغط التالي للإرسال</p>
+            <div class="progress-bar"><div class="progress-fill" id="batch-progress" style="width:0%"></div></div>
+            <div id="batch-status" style="text-align:center;margin:8px 0;font-weight:600;color:var(--p)"></div>
+            <div class="batch-list" id="batch-list"></div>
+            <div style="display:flex;gap:10px;justify-content:center;margin-top:15px">
+                <button class="btn btn-primary" id="btn-next-batch" onclick="nextBatchItem()"><span id="bNext">التالي</span> ➡️</button>
+                <button class="btn btn-sec" onclick="closeBatchModal()" id="bClose">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        //  الإعدادات الأصلية
+        // ========================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        let db, useLocalMode = false;
+        let allData = [];
+        let selectedIds = new Set();
+        let batchQueue = [], batchIndex = 0;
+        let settings = { allowedDays:[0,1,2,3,4], blockedDates:[], workStart:'09:00', workEnd:'17:00' };
+        let pendingSubmit = false;
+
+        // ========================================
+        //  إعدادات اللغة والسمة
+        // ========================================
+        let lang = localStorage.getItem('clinic_lang') || 'ar';
+        let theme = localStorage.getItem('clinic_theme') || 'light';
+
+        // قاموس الترجمات البسيط
+        const T = {
+            ar: {
+                // أزرار
+                langBtn: '🇸🇾', themeBtn: '🌙', langTitle: 'English', themeTitle: 'الوضع الليلي',
+                // تبويبات
+                tDash: '📊 لوحة المواعيد', tAdd: '➕ إضافة موعد', tSet: '⚙️ إعدادات العيادة',
+                // عناوين
+                hDash: '📋 قائمة المواعيد المسجلة', hAdd: '📅 تسجيل موعد جديد', hSet: '⚙️ إعدادات دوام العيادة',
+                // رؤوس الجدول
+                thName: 'المريض', thPhone: 'الهاتف', thDate: 'الموعد', thTime: 'الوقت', thReg: 'تسجيل', thAct: 'إجراءات',
+                // تسميات
+                lName: 'اسم المريض', lPhone: 'رقم الهاتف', lDate: 'تاريخ الموعد', lTime: 'وقت الموعد',
+                lDays: 'الأيام المسموحة', lBlock: 'التواريخ المحظورة', lStart: 'بداية الدوام', lEnd: 'نهاية الدوام',
+                // أيام
+                d0:'أحد', d1:'إثنين', d2:'ثلاثاء', d3:'أربعاء', d4:'خميس', d5:'جمعة', d6:'سبت',
+                // أزرار
+                bFilter:'🔍 تصفية', bReset:'🔄 إلغاء', bBatch:'📤 إرسال واتساب', bExport:'📥 تصدير', bClean:'🗑️ حذف',
+                btnSave:'💾 حفظ الموعد', bSettings:'💾 حفظ الإعدادات',
+                bContinue:'متابعة', bCancel:'إلغاء', bNext:'التالي', bClose:'إغلاق',
+                // نوافذ
+                alertTitle:'⚠️ تنبيه: فجوة زمنية', batchTitle:'📤 إرسال واتساب', batchHint:'اضغط التالي للإرسال',
+                // رسائل
+                mNoData:'لا توجد مواعيد', mSaved:'✅ تم الحفظ', mErr:'❌ فشل: ', mDel:'✅ تم الحذف', mClean:'✅ تم التنظيف', mSet:'✅ تم حفظ الإعدادات',
+                mSel:'⚠️ حدد موعداً واحداً على الأقل', mGap:'فراغ ≥ 30 دقيقة في:', mGapAll:'جميع الأوقات فارغة',
+                mDay:'⛔ اليوم غير مسموح', mDate:'⛔ التاريخ محظور', mTime:'⛔ الوقت خارج الدوام', mTGap:'⛔ فاصل 15 دقيقة مطلوب',
+                mWA:'⚠️ تعذر فتح واتساب', mCDel:'حذف هذا الموعد؟', mCClean:'حذف الأقدم من 30 يوم؟',
+                mConn:'جاري الفحص...', mLocal:'⚠️ وضع محلي', mCloud:'✅ متصل', mErrConn:'❌ فشل: ',
+                mBadge:'🧪 محلي', mLoc:'🧪 محلي', mCld:'☁️ سحابي', mKeyErr:'⚠️ أدخل مفاتيح Supabase أولاً'
+            },
+            en: {
+                // Buttons
+                langBtn: '🇬🇧', themeBtn: '☀️', langTitle: 'العربية', themeTitle: 'Dark Mode',
+                // Tabs
+                tDash: '📊 Appointments', tAdd: '➕ Add Appointment', tSet: '⚙️ Settings',
+                // Headers
+                hDash: '📋 Appointments List', hAdd: '📅 New Appointment', hSet: '⚙️ Clinic Settings',
+                // Table
+                thName: 'Patient', thPhone: 'Phone', thDate: 'Date', thTime: 'Time', thReg: 'Registered', thAct: 'Actions',
+                // Labels
+                lName: 'Patient Name', lPhone: 'Phone Number', lDate: 'Appointment Date', lTime: 'Appointment Time',
+                lDays: 'Allowed Days', lBlock: 'Blocked Dates', lStart: 'Work Start', lEnd: 'Work End',
+                // Days
+                d0:'Sun', d1:'Mon', d2:'Tue', d3:'Wed', d4:'Thu', d5:'Fri', d6:'Sat',
+                // Buttons
+                bFilter:'🔍 Filter', bReset:'🔄 Reset', bBatch:'📤 WhatsApp', bExport:'📥 Export', bClean:'🗑️ Delete',
+                btnSave:'💾 Save', bSettings:'💾 Save Settings',
+                bContinue:'Continue', bCancel:'Cancel', bNext:'Next', bClose:'Close',
+                // Modals
+                alertTitle:'⚠️ Time Gap Alert', batchTitle:'📤 WhatsApp Send', batchHint:'Click Next to send',
+                // Messages
+                mNoData:'No appointments', mSaved:'✅ Saved', mErr:'❌ Error: ', mDel:'✅ Deleted', mClean:'✅ Cleaned', mSet:'✅ Settings saved',
+                mSel:'⚠️ Select at least one', mGap:'Gap ≥ 30min at:', mGapAll:'All times free',
+                mDay:'⛔ Day not allowed', mDate:'⛔ Date blocked', mTime:'⛔ Time outside hours', mTGap:'⛔ 15min gap required',
+                mWA:'⚠️ Could not open WhatsApp', mCDel:'Delete this appointment?', mCClean:'Delete older than 30 days?',
+                mConn:'Checking...', mLocal:'⚠️ Local Mode', mCloud:'✅ Connected', mErrConn:'❌ Error: ',
+                mBadge:'🧪 Local', mLoc:'🧪 Local', mCld:'☁️ Cloud', mKeyErr:'⚠️ Enter Supabase keys first'
+            }
+        };
+
+        // ========================================
+        //  دوال تبديل اللغة والسمة
+        // ========================================
+        function setLang(l) {
+            const t = T[l];
+            document.documentElement.lang = l;
+            document.documentElement.dir = l === 'ar' ? 'rtl' : 'ltr';
+            
+            // تحديث النصوص مباشرة بالـ ID
+            const ids = ['langBtn','themeBtn','tDash','tAdd','tSet','hDash','hAdd','hSet',
+                        'thName','thPhone','thDate','thTime','thReg','thAct',
+                        'lName','lPhone','lDate','lTime','lDays','lBlock','lStart','lEnd',
+                        'd0','d1','d2','d3','d4','d5','d6',
+                        'bFilter','bReset','bBatch','bExport','bClean','btnSave','bSettings',
+                        'bContinue','bCancel','bNext','bClose',
+                        'alertTitle','batchTitle','batchHint',
+                        'conn-text','local-badge'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && t[id]) {
+                    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                        el.placeholder = t[id];
+                    } else if (el.title !== undefined) {
+                        el.title = t[id+'Title'] || t[id];
+                    } else {
+                        el.textContent = t[id];
+                    }
+                }
+            });
+            
+            // تحديث أزرار التحكم
+            document.getElementById('langBtn').textContent = t.langBtn;
+            document.getElementById('langBtn').title = t.langTitle;
+            document.getElementById('themeBtn').textContent = t.themeBtn;
+            document.getElementById('themeBtn').title = t.themeTitle;
+            
+            localStorage.setItem('clinic_lang', l);
+            renderTable(allData);
+        }
+
+        function toggleLang() {
+            lang = lang === 'ar' ? 'en' : 'ar';
+            setLang(lang);
+        }
+
+        function setTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            const btn = document.getElementById('themeBtn');
+            btn.textContent = t === 'dark' ? T[lang].themeBtn : (lang === 'ar' ? '🌙' : '☀️');
+            btn.title = T[lang].themeTitle;
+            localStorage.setItem('clinic_theme', t);
+        }
+
+        function toggleTheme() {
+            theme = theme === 'dark' ? 'light' : 'dark';
+            setTheme(theme);
+        }
+
+        // ========================================
+        // 🚀 التهيئة
+        // ========================================
+        window.addEventListener('DOMContentLoaded', async () => {
+            // تطبيق اللغة والسمة المحفوظة أولاً
+            setLang(lang);
+            setTheme(theme);
+            // ثم تهيئة الباقي
+            initConnection(); 
+            loadSettings(); 
+            await fetchData();
+        });
+
+        // ========================================
+        //  باقي الكود الأصلي (بدون تغيير)
+        // ========================================
+        function initConnection() {
+            const dot = document.getElementById('conn-dot'), txt = document.getElementById('conn-text');
+            const t = T[lang];
+            if (SUPABASE_URL.includes('YOUR_') || SUPABASE_KEY.includes('YOUR_')) {
+                useLocalMode = true; dot.className = 'status-dot err';
+                txt.textContent = t.mLocal;
+                document.getElementById('local-badge').style.display = 'inline';
+                document.getElementById('local-badge').textContent = t.mBadge;
+            } else {
+                db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                db.from('appointments').select('count', {count:'exact', head:true}).then(({error}) => {
+                    if (error) { useLocalMode = true; dot.className = 'status-dot err';
+                        txt.textContent = t.mErrConn + error.message;
+                        document.getElementById('local-badge').style.display = 'inline';
+                        document.getElementById('local-badge').textContent = t.mBadge;
+                    } else { dot.className = 'status-dot ok'; txt.textContent = t.mCloud; }
+                });
+            }
+        }
+
+        function toggleLocalMode() {
+            const t = T[lang];
+            if (SUPABASE_URL.includes('YOUR_')) { alert(t.mKeyErr); return; }
+            useLocalMode = !useLocalMode;
+            document.getElementById('local-badge').style.display = useLocalMode ? 'inline' : 'none';
+            document.getElementById('conn-text').textContent = useLocalMode ? t.mLoc : t.mCld;
+            document.getElementById('conn-dot').className = useLocalMode ? 'status-dot err' : 'status-dot ok';
+            fetchData();
+        }
+
+        function switchTab(id) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${id}')"]`).classList.add('active');
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function fetchData() {
+            if (useLocalMode) { allData = JSON.parse(localStorage.getItem('clinic_appts') || '[]'); renderTable(allData); return; }
+            const { data, error } = await db.from('appointments').select('*').order('appointment_date', {ascending:true}).order('appointment_time', {ascending:true});
+            if(error) { console.error('Fetch Error:', error); allData = JSON.parse(localStorage.getItem('clinic_appts') || '[]'); }
+            else { allData = data || []; }
+            renderTable(allData);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body'); 
+            tbody.innerHTML = '';
+            const t = T[lang];
+            if(!data.length) { 
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#64748b">'+t.mNoData+'</td></tr>'; 
+                return; 
+            }
+            data.forEach((r,i) => {
+                const tr = document.createElement('tr');
+                if(selectedIds.has(r.id)) tr.classList.add('selected');
+                tr.innerHTML = `
+                    <td style="text-align:center"><input type="checkbox" class="appt-check" value="${r.id}" ${selectedIds.has(r.id)?'checked':''} onchange="toggleSelect('${r.id}')"></td>
+                    <td>${i+1}</td><td><strong>${r.patient_name}</strong></td><td dir="ltr">${r.phone}</td>
+                    <td>${r.appointment_date}</td><td><span class="badge badge-p">${r.appointment_time}</span></td>
+                    <td style="font-size:0.85rem;color:#64748b">${new Date(r.created_at||Date.now()).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US')}</td>
+                    <td class="actions">
+                        <button class="btn btn-success" onclick="openWA('${r.phone}','${r.patient_name}','${r.appointment_date}','${r.appointment_time}')">💬 WA</button>
+                        <button class="btn btn-danger" onclick="deleteAppt('${r.id}')" style="padding:6px 10px;font-size:0.8rem">🗑️</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+            updateSelectAllCheckbox();
+        }
+
+        function toggleSelect(id) {
+            if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id);
+            renderTable(allData);
+        }
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('select-all').checked;
+            const visibleIds = allData.map(a => a.id);
+            if(isChecked) visibleIds.forEach(id => selectedIds.add(id));
+            else visibleIds.forEach(id => selectedIds.delete(id));
+            renderTable(allData);
+        }
+        function updateSelectAllCheckbox() {
+            const visibleIds = allData.map(a => a.id);
+            const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedIds.has(id));
+            document.getElementById('select-all').checked = allSelected;
+        }
+
+        async function handleAdd(e) {
+            e.preventDefault();
+            const t = T[lang];
+            const name = document.getElementById('a-name').value.trim(), phone = document.getElementById('a-phone').value.trim().replace(/[\s-]/g,''), date = document.getElementById('a-date').value, time = document.getElementById('a-time').value;
+            if(!validate(date,time)) return;
+            const btn = document.getElementById('btn-save'); btn.disabled = true; btn.textContent = '⏳...';
+            const newRecord = { id: useLocalMode ? crypto.randomUUID() : undefined, patient_name: name, phone, appointment_date: date, appointment_time: time, created_at: new Date().toISOString(), status: 'pending' };
+            try {
+                if (useLocalMode) { const local = JSON.parse(localStorage.getItem('clinic_appts') || '[]'); local.push(newRecord); localStorage.setItem('clinic_appts', JSON.stringify(local)); allData = local; }
+                else { const { error } = await db.from('appointments').insert([newRecord]); if (error) throw error; }
+                alert(t.mSaved); document.getElementById('appt-form').reset(); await fetchData(); switchTab('dash');
+            } catch (err) { alert(t.mErr + err.message); console.error(err); }
+            finally { btn.disabled = false; btn.textContent = t.btnSave; }
+        }
+
+        function validate(date, time) {
+            const t = T[lang];
+            const day = new Date(date).getDay();
+            if(!settings.allowedDays.includes(day)) { alert(t.mDay); return false; }
+            if(settings.blockedDates.includes(date)) { alert(t.mDate); return false; }
+            if(time < settings.workStart || time > settings.workEnd) { alert(t.mTime); return false; }
+            const dayAppts = allData.filter(a=>a.appointment_date===date).map(a=>a.appointment_time), newM = timeToM(time);
+            for(let tm of dayAppts) { if(Math.abs(newM - timeToM(tm)) < 15) { alert(t.mTGap); return false; } }
+            return true;
+        }
+
+        function checkDateConstraints() {
+            const date = document.getElementById('a-date').value; if(!date) return;
+            const t = T[lang];
+            const gaps = getGaps(date); if(gaps.length > 0) {
+                document.getElementById('alert-msg').innerHTML = t.mGap+'<br><b>'+gaps.join('<br>')+'</b>';
+                document.getElementById('alert-modal').classList.add('show'); pendingSubmit = true;
+            }
+        }
+
+        function getGaps(date) {
+            let times = allData.filter(a=>a.appointment_date===date).map(a=>a.appointment_time).sort();
+            const start = timeToM(settings.workStart), end = timeToM(settings.workEnd), gaps = [];
+            const t = T[lang];
+            if(times.length===0) return [t.mGapAll];
+            if(timeToM(times[0]) - start >= 30) gaps.push(lang==='ar' ? `بداية الدوام حتى ${times[0]}` : `Start to ${times[0]}`);
+            for(let i=0;i<times.length-1;i++) { if(timeToM(times[i+1]) - timeToM(times[i]) >= 30) gaps.push(lang==='ar' ? `بين ${times[i]} و ${times[i+1]}` : `${times[i]}-${times[i+1]}`); }
+            if(end - timeToM(times[times.length-1]) >= 30) gaps.push(lang==='ar' ? `${times[times.length-1]} حتى النهاية` : `${times[times.length-1]}-End`);
+            return gaps;
+        }
+
+        function closeAlert(continueAction) {
+            document.getElementById('alert-modal').classList.remove('show');
+            if(continueAction && pendingSubmit) { document.getElementById('appt-form').dispatchEvent(new Event('submit')); pendingSubmit=false; }
+        }
+
+        function openWA(phone, name, date, time) {
+            const t = T[lang];
+            let cleanPhone = phone.replace(/[\s\-\+\(\)]/g, '');
+            if (cleanPhone.startsWith('0')) { cleanPhone = '966' + cleanPhone.slice(1); }
+            const message = lang === 'ar' 
+                ? `*موعد عيادة*\n\n👤 ${name}\n📅 ${date}\n🕐 ${time}\n\nشكراً 🙏`
+                : `*Clinic Appointment*\n\n👤 ${name}\n📅 ${date}\n🕐 ${time}\n\nThank you 🙏`;
+            const encodedMsg = encodeURIComponent(message);
+            const waUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMsg}`;
+            const waWindow = window.open(waUrl, 'wa_clinic_tab', 'noopener,noreferrer');
+            if (!waWindow || waWindow.closed || typeof waWindow.closed === 'undefined') {
+                try { const existing = window.open('', 'wa_clinic_tab'); if(existing && !existing.closed) { existing.location.href = waUrl; existing.focus(); return; } } catch(e){}
+                if(confirm(t.mWA)) window.open(waUrl, '_blank');
+            } else { waWindow.focus(); }
+        }
+
+        function startBatchWA() {
+            const t = T[lang];
+            if(selectedIds.size === 0) return alert(t.mSel);
+            batchQueue = Array.from(selectedIds).map(id => allData.find(a => a.id === id)).filter(Boolean);
+            batchIndex = 0;
+            renderBatchList();
+            document.getElementById('batch-modal').classList.add('show');
+            updateBatchProgress();
+        }
+
+        function renderBatchList() {
+            const list = document.getElementById('batch-list'); list.innerHTML = '';
+            batchQueue.forEach((appt, idx) => {
+                const div = document.createElement('div');
+                div.className = `batch-item ${idx === batchIndex ? 'active' : ''} ${idx < batchIndex ? 'done' : ''}`;
+                div.innerHTML = `<span>👤 ${appt.patient_name}</span><span dir="ltr">${appt.phone}</span>`;
+                list.appendChild(div);
+            });
+        }
+
+        function nextBatchItem() {
+            const t = T[lang];
+            if(batchIndex >= batchQueue.length) { closeBatchModal(); return; }
+            const appt = batchQueue[batchIndex];
+            openWA(appt.phone, appt.patient_name, appt.appointment_date, appt.appointment_time);
+            batchIndex++;
+            renderBatchList();
+            updateBatchProgress();
+            if(batchIndex >= batchQueue.length) {
+                document.getElementById('batch-status').textContent = lang === 'ar' ? '✅ اكتمل!' : '✅ Done!';
+                document.getElementById('btn-next-batch').onclick = closeBatchModal;
+                document.getElementById('bNext').textContent = t.bClose;
+            } else {
+                document.getElementById('batch-status').textContent = lang === 'ar' ? `جاهز: ${batchQueue[batchIndex].patient_name}` : `Ready: ${batchQueue[batchIndex].patient_name}`;
+            }
+        }
+
+        function updateBatchProgress() {
+            const pct = batchQueue.length ? (batchIndex / batchQueue.length) * 100 : 0;
+            document.getElementById('batch-progress').style.width = pct + '%';
+        }
+
+        function closeBatchModal() {
+            document.getElementById('batch-modal').classList.remove('show');
+            selectedIds.clear(); renderTable(allData);
+        }
+
+        async function deleteAppt(id) {
+            const t = T[lang];
+            if(!confirm(t.mCDel)) return;
+            if (useLocalMode) { allData = allData.filter(x => x.id !== id); localStorage.setItem('clinic_appts', JSON.stringify(allData)); }
+            else { await db.from('appointments').delete().eq('id', id); }
+            alert(t.mDel); await fetchData();
+        }
+
+        function exportCSV() {
+            let csv = '\uFEFF'+(lang==='ar'?'الاسم,الهاتف,التاريخ,الوقت,التسجيل':'Name,Phone,Date,Time,Registered')+'\n';
+            allData.forEach(r => csv += `${r.patient_name},${r.phone},${r.appointment_date},${r.appointment_time},${new Date(r.created_at||Date.now()).toLocaleDateString(lang==='ar'?'ar':'en-US')}\n`);
+            const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'}), link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = 'appointments.csv'; link.click();
+        }
+
+        async function cleanupOld() {
+            const t = T[lang];
+            if(!confirm(t.mCClean)) return;
+            const limit = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+            if (useLocalMode) { allData = allData.filter(x => new Date(x.created_at) > new Date(limit)); localStorage.setItem('clinic_appts', JSON.stringify(allData)); }
+            else { await db.from('appointments').delete().lt('created_at', limit); }
+            alert(t.mClean); await fetchData();
+        }
+
+        function applyFilters() {
+            const d = document.getElementById('filter-date').value, r = document.getElementById('filter-reg').value;
+            let res = allData;
+            if(d) res = res.filter(x=>x.appointment_date===d);
+            if(r) res = res.filter(x=>new Date(x.created_at).toISOString().split('T')[0]===r);
+            renderTable(res);
+        }
+        function resetFilters() { document.getElementById('filter-date').value = ''; document.getElementById('filter-reg').value = ''; renderTable(allData); }
+
+        function loadSettings() {
+            const s = localStorage.getItem('clinic_settings'); if(s) settings = JSON.parse(s);
+            document.querySelectorAll('#set input[type=checkbox]').forEach(cb => cb.checked = settings.allowedDays.includes(parseInt(cb.value)));
+            document.getElementById('s-blocked').value = settings.blockedDates.join('\n');
+            document.getElementById('s-start').value = settings.workStart; document.getElementById('s-end').value = settings.workEnd;
+        }
+        function saveSettings() {
+            const t = T[lang];
+            settings.allowedDays = Array.from(document.querySelectorAll('#set input[type=checkbox]:checked')).map(c=>parseInt(c.value));
+            settings.blockedDates = document.getElementById('s-blocked').value.split('\n').filter(l=>l.trim());
+            settings.workStart = document.getElementById('s-start').value; settings.workEnd = document.getElementById('s-end').value;
+            localStorage.setItem('clinic_settings', JSON.stringify(settings)); alert(t.mSet);
+        }
+        function timeToM(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+    </script>
+</body>
+</html>
